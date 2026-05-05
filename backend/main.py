@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,13 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
 )
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    logging.getLogger(__name__).info("PlagGuard API ready 🛡️")
+    yield
+
 app = FastAPI(
     title="PlagGuard",
     description=(
@@ -26,6 +34,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # ── Middleware ─────────────────────────────────────────────────────────
@@ -41,10 +50,3 @@ app.add_middleware(RequestSizeLimitMiddleware)
 
 # ── Routes ─────────────────────────────────────────────────────────────
 app.include_router(router)
-
-
-# ── Startup ────────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    init_db()
-    logging.getLogger(__name__).info("PlagGuard API ready 🛡️")
